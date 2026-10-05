@@ -1,5 +1,6 @@
 #include "ExpenseManager.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <fstream>
@@ -23,6 +24,13 @@ std::string trim(const std::string& text) {
 
 bool isLeapYear(int year) {
     return year % 400 == 0 || (year % 4 == 0 && year % 100 != 0);
+}
+
+std::string toLower(std::string text) {
+    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char character) {
+        return static_cast<char>(std::tolower(character));
+    });
+    return text;
 }
 
 std::string escapeCsv(const std::string& value) {
@@ -106,7 +114,100 @@ void ExpenseManager::addExpenseInteractive() {
 }
 
 void ExpenseManager::displayAllExpenses() const {
+    displayExpenses(expenses_);
+}
+
+void ExpenseManager::deleteExpenseInteractive() {
     if (expenses_.empty()) {
+        std::cout << "No expenses found.\n";
+        return;
+    }
+
+    const int id = readPositiveInteger("Enter the expense ID to delete: ");
+    const auto match = std::find_if(expenses_.begin(), expenses_.end(),
+                                    [id](const Expense& expense) {
+                                        return expense.getId() == id;
+                                    });
+
+    if (match == expenses_.end()) {
+        std::cout << "No expense exists with ID " << id << ".\n";
+        return;
+    }
+
+    expenses_.erase(match);
+    if (saveExpenses()) {
+        std::cout << "Expense deleted successfully.\n";
+    } else {
+        std::cout << "Expense deleted, but the data file could not be updated.\n";
+    }
+}
+
+void ExpenseManager::searchByCategoryInteractive() const {
+    const std::string query = readRequiredText("Category to search for: ");
+    const std::string loweredQuery = toLower(query);
+    std::vector<Expense> matches;
+
+    for (const Expense& expense : expenses_) {
+        if (toLower(expense.getCategory()).find(loweredQuery) != std::string::npos) {
+            matches.push_back(expense);
+        }
+    }
+
+    if (matches.empty()) {
+        std::cout << "No expenses found for category search \"" << query << "\".\n";
+        return;
+    }
+
+    displayExpenses(matches);
+}
+
+void ExpenseManager::sortExpensesInteractive() {
+    if (expenses_.empty()) {
+        std::cout << "There are no expenses to sort.\n";
+        return;
+    }
+
+    std::cout << "\nSort by:\n"
+              << "1. Amount (lowest first)\n"
+              << "2. Date (oldest first)\n"
+              << "3. Category (A-Z)\n";
+    const int choice = readPositiveInteger("Choose an option: ");
+
+    switch (choice) {
+        case 1:
+            std::sort(expenses_.begin(), expenses_.end(),
+                      [](const Expense& first, const Expense& second) {
+                          return first.getAmount() < second.getAmount();
+                      });
+            break;
+        case 2:
+            std::sort(expenses_.begin(), expenses_.end(),
+                      [](const Expense& first, const Expense& second) {
+                          return first.getDate() < second.getDate();
+                      });
+            break;
+        case 3:
+            std::sort(expenses_.begin(), expenses_.end(),
+                      [](const Expense& first, const Expense& second) {
+                          return toLower(first.getCategory()) <
+                                 toLower(second.getCategory());
+                      });
+            break;
+        default:
+            std::cout << "Invalid sort selection. Choose 1-3.\n";
+            return;
+    }
+
+    if (!saveExpenses()) {
+        std::cout << "Expenses sorted, but the data file could not be updated.\n";
+    } else {
+        std::cout << "Expenses sorted successfully.\n";
+    }
+    displayAllExpenses();
+}
+
+void ExpenseManager::displayExpenses(const std::vector<Expense>& expenses) {
+    if (expenses.empty()) {
         std::cout << "No expenses found.\n";
         return;
     }
@@ -119,7 +220,7 @@ void ExpenseManager::displayAllExpenses() const {
               << std::left << "Description\n"
               << std::string(70, '-') << '\n';
 
-    for (const Expense& expense : expenses_) {
+    for (const Expense& expense : expenses) {
         std::cout << std::left << std::setw(5) << expense.getId()
                   << std::setw(12) << expense.getDate()
                   << std::setw(18) << expense.getCategory()
@@ -197,6 +298,21 @@ double ExpenseManager::readPositiveAmount() {
         }
 
         std::cout << "Invalid amount. Enter a number greater than zero.\n";
+    }
+}
+
+int ExpenseManager::readPositiveInteger(const std::string& prompt) {
+    while (true) {
+        std::cout << prompt;
+        std::string input;
+        std::getline(std::cin, input);
+
+        int value = 0;
+        if (parseInteger(input, value) && value > 0) {
+            return value;
+        }
+
+        std::cout << "Invalid input. Enter a positive whole number.\n";
     }
 }
 

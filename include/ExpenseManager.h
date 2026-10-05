@@ -12,6 +12,9 @@ public:
 
     void addExpenseInteractive();
     void displayAllExpenses() const;
+    void deleteExpenseInteractive();
+    void searchByCategoryInteractive() const;
+    void sortExpensesInteractive();
 
 private:
     std::vector<Expense> expenses_;
@@ -20,7 +23,9 @@ private:
 
     void loadExpenses();
     bool saveExpenses() const;
+    static void displayExpenses(const std::vector<Expense>& expenses);
     static double readPositiveAmount();
+    static int readPositiveInteger(const std::string& prompt);
     static std::string readRequiredText(const std::string& prompt);
     static std::string readValidDate();
     static bool isValidDate(const std::string& date);
