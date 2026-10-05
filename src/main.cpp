@@ -1,3 +1,5 @@
+#include "ExpenseManager.h"
+
 #include <iostream>
 #include <limits>
 
@@ -27,6 +29,7 @@ int readMenuChoice() {
 }  // namespace
 
 int main() {
+    ExpenseManager manager;
     bool running = true;
 
     while (running) {
@@ -34,10 +37,10 @@ int main() {
 
         switch (readMenuChoice()) {
             case 1:
-                std::cout << "Adding expenses will be available soon.\n";
+                manager.addExpenseInteractive();
                 break;
             case 2:
-                std::cout << "There are no expenses to display yet.\n";
+                manager.displayAllExpenses();
                 break;
             case 3:
                 running = false;
