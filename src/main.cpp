@@ -24,6 +24,10 @@ int readMenuChoice() {
     int choice = 0;
 
     while (!(std::cin >> choice)) {
+        if (std::cin.eof()) {
+            return 8;
+        }
+
         std::cout << "Please enter a number: ";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
