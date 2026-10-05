@@ -2,9 +2,12 @@
 
 #include <cctype>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <sstream>
+#include <utility>
 
 namespace {
 
@@ -22,7 +25,71 @@ bool isLeapYear(int year) {
     return year % 400 == 0 || (year % 4 == 0 && year % 100 != 0);
 }
 
+std::string escapeCsv(const std::string& value) {
+    std::string escaped = "\"";
+    for (char character : value) {
+        if (character == '\"') {
+            escaped += "\"\"";
+        } else {
+            escaped += character;
+        }
+    }
+    return escaped + "\"";
+}
+
+bool parseCsvRow(const std::string& line, std::vector<std::string>& fields) {
+    fields.clear();
+    std::string field;
+    bool insideQuotes = false;
+
+    for (std::size_t index = 0; index < line.size(); ++index) {
+        const char character = line[index];
+        if (insideQuotes) {
+            if (character == '\"' && index + 1 < line.size() &&
+                line[index + 1] == '\"') {
+                field += '\"';
+                ++index;
+            } else if (character == '\"') {
+                insideQuotes = false;
+            } else {
+                field += character;
+            }
+        } else if (character == '\"' && field.empty()) {
+            insideQuotes = true;
+        } else if (character == ',') {
+            fields.push_back(field);
+            field.clear();
+        } else {
+            field += character;
+        }
+    }
+
+    if (insideQuotes) {
+        return false;
+    }
+
+    fields.push_back(field);
+    return true;
+}
+
+bool parseInteger(const std::string& text, int& value) {
+    std::istringstream stream(text);
+    char extra = '\0';
+    return (stream >> value) && !(stream >> extra);
+}
+
+bool parseDouble(const std::string& text, double& value) {
+    std::istringstream stream(text);
+    char extra = '\0';
+    return (stream >> value) && !(stream >> extra);
+}
+
 }  // namespace
+
+ExpenseManager::ExpenseManager(std::string filePath)
+    : filePath_(std::move(filePath)) {
+    loadExpenses();
+}
 
 void ExpenseManager::addExpenseInteractive() {
     const double amount = readPositiveAmount();
@@ -31,7 +98,11 @@ void ExpenseManager::addExpenseInteractive() {
     const std::string date = readValidDate();
 
     expenses_.emplace_back(nextId_++, amount, category, description, date);
-    std::cout << "Expense added successfully.\n";
+    if (saveExpenses()) {
+        std::cout << "Expense added and saved successfully.\n";
+    } else {
+        std::cout << "Expense added, but the data file could not be updated.\n";
+    }
 }
 
 void ExpenseManager::displayAllExpenses() const {
@@ -56,6 +127,58 @@ void ExpenseManager::displayAllExpenses() const {
                   << std::setprecision(2) << expense.getAmount() << "  "
                   << std::left << expense.getDescription() << '\n';
     }
+}
+
+void ExpenseManager::loadExpenses() {
+    std::ifstream input(filePath_);
+    if (!input) {
+        return;  // A data file will be created when the first expense is added.
+    }
+
+    std::string line;
+    std::size_t lineNumber = 0;
+    while (std::getline(input, line)) {
+        ++lineNumber;
+        if (line.empty() || (lineNumber == 1 && line == "id,amount,category,description,date")) {
+            continue;
+        }
+
+        std::vector<std::string> fields;
+        int id = 0;
+        double amount = 0.0;
+        if (!parseCsvRow(line, fields) || fields.size() != 5 ||
+            !parseInteger(fields[0], id) || !parseDouble(fields[1], amount) ||
+            id < 1 || amount <= 0.0 || !std::isfinite(amount) ||
+            trim(fields[2]).empty() || trim(fields[3]).empty() ||
+            !isValidDate(fields[4])) {
+            std::cerr << "Warning: skipped invalid data on line " << lineNumber
+                      << " of " << filePath_ << ".\n";
+            continue;
+        }
+
+        expenses_.emplace_back(id, amount, fields[2], fields[3], fields[4]);
+        if (id >= nextId_ && id < std::numeric_limits<int>::max()) {
+            nextId_ = id + 1;
+        }
+    }
+}
+
+bool ExpenseManager::saveExpenses() const {
+    std::ofstream output(filePath_);
+    if (!output) {
+        return false;
+    }
+
+    output << "id,amount,category,description,date\n";
+    output << std::setprecision(15);
+    for (const Expense& expense : expenses_) {
+        output << expense.getId() << ',' << expense.getAmount() << ','
+               << escapeCsv(expense.getCategory()) << ','
+               << escapeCsv(expense.getDescription()) << ','
+               << expense.getDate() << '\n';
+    }
+
+    return output.good();
 }
 
 double ExpenseManager::readPositiveAmount() {

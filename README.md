@@ -9,6 +9,10 @@ personal expenses.
 - Local expense storage
 - Search, sorting, deletion, and spending summaries
 
+Expense data is saved automatically in `data/expenses.csv`. If the file does
+not exist, the program starts with an empty list and creates it after the first
+expense is added.
+
 ## Build
 
 ```bash
