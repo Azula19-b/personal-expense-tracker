@@ -15,6 +15,8 @@ public:
     void deleteExpenseInteractive();
     void searchByCategoryInteractive() const;
     void sortExpensesInteractive();
+    void displayTotalSpending() const;
+    void displayCategoryTotals() const;
 
 private:
     std::vector<Expense> expenses_;

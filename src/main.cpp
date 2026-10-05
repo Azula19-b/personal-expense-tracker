@@ -6,13 +6,17 @@
 namespace {
 
 void displayMenu() {
-    std::cout << "\n=== Personal Expense Tracker ===\n"
+    std::cout << "\n================================\n"
+              << "    Personal Expense Tracker\n"
+              << "================================\n"
               << "1. Add expense\n"
               << "2. View all expenses\n"
               << "3. Delete an expense\n"
               << "4. Search by category\n"
               << "5. Sort expenses\n"
-              << "6. Exit\n"
+              << "6. Show total spending\n"
+              << "7. Show spending by category\n"
+              << "8. Exit\n"
               << "Choose an option: ";
 }
 
@@ -55,10 +59,16 @@ int main() {
                 manager.sortExpensesInteractive();
                 break;
             case 6:
+                manager.displayTotalSpending();
+                break;
+            case 7:
+                manager.displayCategoryTotals();
+                break;
+            case 8:
                 running = false;
                 break;
             default:
-                std::cout << "Invalid selection. Please choose 1-6.\n";
+                std::cout << "Invalid selection. Please choose 1-8.\n";
         }
     }
 

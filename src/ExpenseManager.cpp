@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <utility>
 
@@ -204,6 +205,43 @@ void ExpenseManager::sortExpensesInteractive() {
         std::cout << "Expenses sorted successfully.\n";
     }
     displayAllExpenses();
+}
+
+void ExpenseManager::displayTotalSpending() const {
+    double total = 0.0;
+    for (const Expense& expense : expenses_) {
+        total += expense.getAmount();
+    }
+
+    std::cout << "Total spending: $" << std::fixed << std::setprecision(2)
+              << total << '\n';
+}
+
+void ExpenseManager::displayCategoryTotals() const {
+    if (expenses_.empty()) {
+        std::cout << "No expenses are available to summarize.\n";
+        return;
+    }
+
+    // The lowercase key groups categories such as "Food" and "food" together.
+    std::map<std::string, std::pair<std::string, double>> totals;
+    for (const Expense& expense : expenses_) {
+        const std::string key = toLower(expense.getCategory());
+        auto& entry = totals[key];
+        if (entry.first.empty()) {
+            entry.first = expense.getCategory();
+        }
+        entry.second += expense.getAmount();
+    }
+
+    std::cout << "\nSpending by category\n"
+              << std::string(34, '-') << '\n';
+    for (const auto& [key, entry] : totals) {
+        (void)key;
+        std::cout << std::left << std::setw(22) << entry.first
+                  << std::right << '$' << std::setw(10) << std::fixed
+                  << std::setprecision(2) << entry.second << '\n';
+    }
 }
 
 void ExpenseManager::displayExpenses(const std::vector<Expense>& expenses) {
